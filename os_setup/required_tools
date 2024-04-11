@@ -1,3 +1,4 @@
 parted
 debootstrap
 dosfstools
+arch-install-scripts
