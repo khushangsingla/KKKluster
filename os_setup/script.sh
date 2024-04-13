@@ -1,54 +1,62 @@
 start_uefi=1MiB
 end_uefi=300MiB
-start_swap=$end_uefi
-end_swap=1GiB
-start_root=$end_swap
-device_name=nbd5
+start_root=$end_uefi
+device_name=nbd1
 bootstrap_mirror=http://deb.debian.org/debian/
+swapsize=1 # in units of 512MB
 # grub-install --target=i386-pc /dev/${device_name}
 parted -s  `# non-interactive` \
 	-a optimal `# align according to optimal performance` \
 	-- /dev/$device_name `# block device to set the partitions` \
 	mklabel gpt `# make a gpt partition table` \
 	mkpart primary fat32 $start_uefi $end_uefi `# make a UEFI partition` \
-	mkpart primary linux-swap $start_swap $end_swap `# make a swap partition` \
 	mkpart primary ext4 $start_root -0 `# make root partition` \
 	name 1 uefi \
-	name 2 swap \
-	name 3 root \
+	name 2 root \
 	set 1 esp on `# set esp flag on efi partition` \
-	set 2 swap on `# set swap flag on`
 	# set 1 boot on # set boot flag on
 
 
 # formatting the partitions
 
 mkfs.fat -F 32 /dev/${device_name}p1
-mkswap -L swap /dev/${device_name}p2
-mkfs.ext4 -L root /dev/${device_name}p3
+mkfs.ext4 -L root /dev/${device_name}p2
 
 # swap_uuid="$(blkid --probe /dev/${device_name}p2 | grep -o ' UUID="[^"]\+"' | sed -e 's/^ //' )"
 # root_uuid="$(blkid --probe /dev/${device_name}p3 | grep -o ' UUID="[^"]\+"' | sed -e 's/^ //' )"
 # boot_uuid="$(blkid --probe /dev/${device_name}p1 | grep -o ' UUID="[^"]\+"' | sed -e 's/^ //' )"
 
-mount /dev/${device_name}p3 /mnt
+mount /dev/${device_name}p2 /mnt
 
 mkdir /mnt/boot
 mount /dev/${device_name}p1 /mnt/boot
 
-swapon /dev/${device_name}p2
-
 debootstrap --arch=amd64 `# architecture of machine` \
-	--include=docker.io,docker-compose,openssh-server,grub-efi-amd64,linux-image-amd64,network-manager,dbus,dbus-bin,dbus-daemon,dbus-session-bus-common,dbus-system-bus-common,dbus-user-session,libpam-systemd,systemd `# packages to install` \
+	--include=systemd,dbus `# packages to install` \
 	--components=main,restricted,universe `# components to use` \
 	bookworm `# install stable` \
 	/mnt `#install target` \
 	$bootstrap_mirror # mirror for bootstrapping
 
+dd if=/dev/zero of=/mnt/swapfile bs=512M count=$swapsize
+chmod 0600 /mnt/swapfile
+mkswap /mnt/swapfile
 genfstab -U /mnt >> /mnt/etc/fstab
-# mount --bind /dev /mnt/dev
-# mount --bind /proc /mnt/proc
-# mount --bind /sys /mnt/sys
 
-arch-chroot /mnt/ bash -c "apt update && apt upgrade -y && apt install grub-efi-amd64 linux-image-amd64 sudo && grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB && update-grub && grub-mkconfig -o /boot/grub/grub.cfg && useradd --home /home/admin --shell /bin/bash -m admin && echo the_password | passwd admin --stdin && echo 'admin  ALL=(ALL:ALL) ALL' >> /etc/sudoers"
-umount -R /mnt
+arch-chroot /mnt/ bash -c "apt update \
+	&& apt upgrade -y \
+	&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssh-server curl wget -y \
+	&& grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB \
+	&& update-grub \
+	&& grub-mkconfig -o /boot/grub/grub.cfg \
+	&& useradd --home /home/admin --shell /bin/bash -m admin \
+	&& passwd admin \
+	&& curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
+	&& echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list \
+	&& apt-get update \ 
+	&& apt-get install -y kubelet kubeadm kubectl \
+	&& apt-mark hold kubelet kubeadm kubectl\
+	&& systemctl enable kubelet"
+echo 'admin  ALL=(ALL:ALL) ALL' >> /mnt/etc/sudoers
+echo "/swapfile           	none      	swap      	defaults  	0 0" >> /etc/fstab
+# umount -R /mnt
