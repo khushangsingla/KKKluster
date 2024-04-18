@@ -47,7 +47,7 @@ else
 		$bootstrap_mirror # mirror for bootstrapping
 	arch-chroot /tmp/bootstrapping bash -c "apt update \
 		&& apt upgrade -y \
-		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget -y \
+		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget htop -y \
 		&& curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
 		&& echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list \
 		&& apt update \
@@ -64,13 +64,12 @@ fi
 echo end if
 
 cp -rp /tmp/bootstrapping/* /mnt
-dd if=/dev/zero of=/mnt/swapfile bs=512M count=$swapsize
-chmod 0600 /mnt/swapfile
-mkswap /mnt/swapfile
+# dd if=/dev/zero of=/mnt/swapfile bs=512M count=$swapsize
+# chmod 0600 /mnt/swapfile
+# mkswap /mnt/swapfile
 genfstab -U /mnt > /mnt/etc/fstab
 
 arch-chroot /mnt/ bash -c "apt update \
-	&& apt upgrade -y \
 	&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget -y \
 	&& grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB \
 	&& update-grub \
@@ -78,5 +77,5 @@ arch-chroot /mnt/ bash -c "apt update \
 	&& useradd --home /home/admin --shell /bin/bash -m admin \
 	&& passwd admin"
 echo 'admin  ALL=(ALL:ALL) ALL' >> /mnt/etc/sudoers
-echo "/swapfile           	none      	swap      	defaults  	0 0" >> /etc/fstab
+# echo "/swapfile           	none      	swap      	defaults  	0 0" >> /mnt/etc/fstab
 umount -R /mnt
