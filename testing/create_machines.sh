@@ -6,9 +6,9 @@ qemu-nbd --connect=/dev/nbd0 control_plane.img
 qemu-nbd --connect=/dev/nbd1 worker0.img
 qemu-nbd --connect=/dev/nbd2 worker1.img
 
-../os_setup/script.sh nbd0
-../os_setup/script.sh nbd1
-../os_setup/script.sh nbd2
+../os_setup/script.sh nbd0 control_plane
+../os_setup/script.sh nbd1 worker0
+../os_setup/script.sh nbd2 worker1
 
 sudo VBoxManage internalcommands createrawvmdk -filename control_plane.vmdk -rawdisk /dev/nbd0
 sudo VBoxManage internalcommands createrawvmdk -filename worker0.vmdk -rawdisk /dev/nbd1

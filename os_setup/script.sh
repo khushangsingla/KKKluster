@@ -68,6 +68,8 @@ cp -rp /tmp/bootstrapping/* /mnt
 # chmod 0600 /mnt/swapfile
 # mkswap /mnt/swapfile
 genfstab -U /mnt > /mnt/etc/fstab
+echo "127.0.0.1 $2" >> /mnt/etc/hosts
+echo $2 > /mnt/etc/hostname
 
 arch-chroot /mnt/ bash -c "apt update \
 	&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget -y \
