@@ -79,5 +79,8 @@ arch-chroot /mnt/ bash -c "apt update \
 	&& useradd --home /home/admin --shell /bin/bash -m admin \
 	&& passwd admin"
 echo 'admin  ALL=(ALL:ALL) ALL' >> /mnt/etc/sudoers
+
+mkdir /mnt/home/admin/.ssh
+cp /home/hrishi/.ssh/authorized_keys /mnt/home/admin/.ssh
 # echo "/swapfile           	none      	swap      	defaults  	0 0" >> /mnt/etc/fstab
 umount -R /mnt
