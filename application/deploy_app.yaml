@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kkkluster
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: kkkluster
+  name: webpage
+  labels:
+    name: external-access
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: kkkluster
+  name: db-service
+  labels:
+    name: internal-database
+spec:
+  selector:
+    name: internal-database
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-secret
+  namespace: kkkluster
+  labels:
+    name: secret
+data:
+  POSTGRES_DB: userdata
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: kkkluster
+  name: db-data
+  labels:
+    storage: db-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 5Gi
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /k8s_data
+    server: 10.130.5.151
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-data-claim
+  namespace: kkkluster
+spec:
+  accessModes:
+    - ReadWriteMany
+  selector:
+    matchLabels:
+      storage: db-storage
+  resources:
+    requests: 
+      storage: 1Gi
+    limits: 
+      storage: 5Gi
+  volumeName: db-data
+
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: kkkluster
+  name: db-deployment
+  labels:
+    name: internal-database
+spec:
+  selector:
+    matchLabels:
+      app: pgsql
+  template:
+    metadata:
+      labels:
+        name: internal-database
+        app: pgsql
+    spec:
+      containers:
+        - name: db-cont
+          image: khushangsingla/random
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+          envFrom:
+            - configMapRef:
+                name: db-secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: db-data-claim
+
