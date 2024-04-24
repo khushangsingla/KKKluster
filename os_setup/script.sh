@@ -46,10 +46,9 @@ else
 		/tmp/bootstrapping `#install target` \
 		$bootstrap_mirror # mirror for bootstrapping
 	arch-chroot /tmp/bootstrapping bash -c "apt update \
-		&& apt upgrade -y \
-		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget htop -y \
-		&& curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
-		&& echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list \
+		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget htop nfs-common -y \
+		&& curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
+		&& echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list \
 		&& apt update \
 		&& apt install -y kubelet kubeadm kubectl \
 		&& apt-mark hold kubelet kubeadm kubectl \
@@ -59,7 +58,13 @@ else
 		&& echo 'deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main' | tee /etc/apt/sources.list.d/helm-stable-debian.list \
 		&& apt-get update \
 		&& apt-get install helm \
-		&& helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/"
+		&& helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/ \
+		&& echo 'net.bridge.bridge-nf-call-iptables=1' | sudo tee -a /etc/sysctl.conf \
+		&& wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.12/cri-dockerd_0.3.12.3-0.debian-bookworm_amd64.deb \
+		&& dpkg -i cri-dockerd_0.3.12.3-0.debian-bookworm_amd64.deb \
+		&& mkdir -p /opt/cni/bin \
+		&& curl -O -L https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz \
+		&& tar -C /opt/cni/bin -xzf cni-plugins-linux-amd64-v1.2.0.tgz"
 fi
 echo end if
 
