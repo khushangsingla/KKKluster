@@ -6,7 +6,7 @@ qemu-nbd --connect=/dev/nbd0 control_plane.img
 qemu-nbd --connect=/dev/nbd1 worker0.img
 qemu-nbd --connect=/dev/nbd2 worker1.img
 
-../os_setup/script.sh nbd0 control_plane
+../os_setup/script.sh nbd0 controlplane
 ../os_setup/script.sh nbd1 worker0
 ../os_setup/script.sh nbd2 worker1
 
