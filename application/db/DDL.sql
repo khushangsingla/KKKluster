@@ -11,10 +11,19 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS tasks (
-    tid SERIAL,
+    tid SERIAL PRIMARY KEY,
     id SERIAL,
-    cmd VARCHAR NOT NULL,
     image VARCHAR NOT NULL,
-    completed BOOLEAN NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
 	FOREIGN KEY (id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS threads (
+	thid SERIAL PRIMARY KEY,
+	tid SERIAL,
+	id SERIAL,
+	retval INT,
+	cmd VARCHAR,
+	completed BOOLEAN DEFAULT FALSE,
+	FOREIGN KEY (tid) REFERENCES tasks(tid)
 );
