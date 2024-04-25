@@ -1,0 +1,12 @@
+[Unit]
+Description=Connect to proxy every 30 minutes
+
+[Timer]
+OnStartupSec=5
+OnUnitActiveSec=1700
+RefuseManualStart=no
+RefuseManulStop=no
+Unit=internet_access_enable.service
+
+[Install]
+WantedBy=timers.target

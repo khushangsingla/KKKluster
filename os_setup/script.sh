@@ -75,6 +75,10 @@ cp -rp /tmp/bootstrapping/* /mnt
 genfstab -U /mnt > /mnt/etc/fstab
 echo "127.0.0.1 $2" >> /mnt/etc/hosts
 echo $2 > /mnt/etc/hostname
+cp internet_access_enable.service /mnt/etc/systemd/system
+cp internet_access_enable.timer /mnt/etc/systemd/system
+cp internet_access.sh /mnt/home/admin
+chmod +x /mnt/home/admin
 
 arch-chroot /mnt/ bash -c "apt update \
 	&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget -y \
@@ -82,8 +86,10 @@ arch-chroot /mnt/ bash -c "apt update \
 	&& update-grub \
 	&& grub-mkconfig -o /boot/grub/grub.cfg \
 	&& useradd --home /home/admin --shell /bin/bash -m admin \
-	&& passwd admin"
-echo 'admin  ALL=(ALL:ALL) ALL' >> /mnt/etc/sudoers
+	&& passwd admin \
+	&& systemctl enable internet_access_enable.service \
+	&& systemctl enable internet_access_enable.timer"
+echo 'admin  ALL=(ALL:ALL) NOPASSWD:ALL' >> /mnt/etc/sudoers
 
 mkdir /mnt/home/admin/.ssh
 cp /home/hrishi/.ssh/authorized_keys /mnt/home/admin/.ssh

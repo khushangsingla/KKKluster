@@ -1,0 +1,12 @@
+[Unit]
+Description=Authorize with proxy every 30 minutes
+After=NetworkManager.service
+
+[Service]
+ExecStart=
+ExecStart=/home/admin/internet_access.sh
+User=admin
+Group=admin
+
+[Install]
+WantedBy=default.target
