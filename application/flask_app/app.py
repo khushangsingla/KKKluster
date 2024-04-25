@@ -1,5 +1,5 @@
 import jwt, os
-from flask import Flask, request, jsonify, render_template, make_response
+from flask import Flask, request, jsonify, render_template, make_response, redirect, url_for
 import json
 from utils import *
 # from auth_middleware import token_required
@@ -32,8 +32,15 @@ def authorize(req):
 def hello():
     ret = authorize(request)
     if ret:
-        return render_template("submit_jobs.html",userid=str(ret), jobs = get_jobs_of_user(ret))
-    return render_template("login.html", error=None)
+        return redirect("/profile")
+    return redirect("/login")
+
+@app.route("/profile", methods=["GET"])
+def profile():
+    ret = authorize(request)
+    if not ret:
+        return redirect("/login")
+    return render_template("submit_jobs.html",userid=str(ret), jobs = get_jobs_of_user(ret), message=request.args.get("message"))
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -89,14 +96,15 @@ def login():
 def submit_jobs():
     ret = authorize(request)
     if not ret:
-        return render_template("login.html")
+        return redirect("/login")
     try:
         data = request.files
         task_ret = add_tasks_in_db(data['textfile'].read().decode("ascii").split("\n"),request.form["image_link"],ret)
         if "error" in task_ret:
-            return render_template("submit_jobs.html",userid=str(ret), message=str(task_ret["error"]))
-        return render_template("submit_jobs.html",userid=str(ret), message=f"Jobs Submitted Successfully : {task_ret['tid']}")
+            return render_template("submit_jobs.html", message=str(task_ret["error"]),userid=str(ret), jobs = get_jobs_of_user(ret))
+        return redirect(url_for("profile", message=f"Jobs Submitted Successfully : {task_ret['tid']}"))
     except Exception as e:
+        raise e
         return {
                 "message": "Something went wrong!",
                 "error": str(e),
@@ -107,7 +115,7 @@ def submit_jobs():
 def delete_jobs():
     ret = authorize(request)
     if not ret:
-        return render_template("login.html")
+        return redirect("/login")
     try:
         retval = delete_jobs_in_db(ret,request.form["job_id"])
         if "error" in retval:
@@ -116,7 +124,7 @@ def delete_jobs():
                     "error": retval["error"],
                     "data": None
             }, 500
-        return render_template("submit_jobs.html",userid=str(ret), jobs = get_jobs_of_user(ret))
+        return redirect("/profile")
     except Exception as e:
         return {
                 "message": "Something went wrong!",
