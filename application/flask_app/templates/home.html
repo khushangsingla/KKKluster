@@ -1,0 +1,24 @@
+<html>
+	<head>
+		<title>Home</title>
+	</head>
+	<body>
+		{% with messages = get_flashed_messages() %}
+		  {% if messages %}
+		    <ul class=flashes>
+		    {% for message in messages %}
+		      <li>{{ message }}</li>
+		    {% endfor %}
+		    </ul>
+		  {% endif %}
+		{% endwith %}
+		{% if username %}
+			Welcome {{ username }}. 
+			<a href="{{ url_for('logout') }}">Click here</a> to logout.
+		{% else %}
+			You are not logged in.			
+			<a href="{{ url_for('login') }}">Click here</a> to login.
+		{% endif %}
+	</body>
+</html>
+

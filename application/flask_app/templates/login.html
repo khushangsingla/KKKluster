@@ -1,0 +1,35 @@
+<html>
+	<head>
+		<title>Login</title>
+	</head>
+	<body>
+		{% with messages = get_flashed_messages() %}
+		  {% if messages %}
+		    <ul class=flashes>
+		    {% for message in messages %}
+		      <li>{{ message }}</li>
+		    {% endfor %}
+		    </ul>
+		  {% endif %}
+		{% endwith %}
+
+		{% if username %}
+			You are already logged in as{{ username }}.
+			<a href="{{ url_for('home') }}">Click here</a> to go to home.
+			<a href="{{ url_for('logout') }}">Click here</a> to logout.
+		{% else %}
+			<form method="post" action="/login">
+				<label for="username">Username</label>
+				<input type="text" name="username" id="username"/> 
+				<br/>
+
+				<label for="password">Password</label>
+				<input type="password" name="password" id="password"/> 
+				<br/>
+
+				<input type="submit" name="submit" id="submit" value="Login"/> 
+				<input type="submit" name="create" id="create" value="SignUp"/> 
+			</form>
+		{% endif %}
+	</body>
+</html>

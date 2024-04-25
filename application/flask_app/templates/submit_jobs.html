@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>Submit Jobs</title>
+    </head>
+    <body>
+        <p> Hello, {{ userid }}! </p>
+        <!-- get textfile and image link from user -->
+        <p> Please upload a textfile containing the jobs you want to submit. </p>
+        <p> The textfile should contain one job per line. </p>
+
+        <form method="post" action="/submit_jobs" enctype="multipart/form-data">
+            <label for="textfile">Textfile</label>
+            <input type="file" name="textfile" id="textfile"/>
+            <br/>
+            <input type="text" name="image_link" id="image_link" placeholder="Image Link"/>
+
+            <input type="submit" name="submit" id="submit" value="Submit"/>
+        </form>
+        {{ message }}
+    </body>
+</html>
