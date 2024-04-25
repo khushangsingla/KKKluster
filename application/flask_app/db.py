@@ -5,15 +5,17 @@ import nacl
 import datetime
 from typing import List, Tuple
 import psycopg2.extras
-dbName = "userdata"
+import os
+
 
 users_table_name = "users"
 
 # Assuming the db passwords etc are the same.
-dbUser = "postgres"
-dbPass = "postgres"
-dbHost = "10.130.5.209"
-dbPort = 5432
+dbName = os.environ.get("POSTGRES_DB","userdata")
+dbUser = os.environ.get("POSTGRES_USER","postgres")
+dbPass = os.environ.get("POSTGRES_PASSWORD","postgres")
+dbHost = os.environ.get("POSTGRES_HOST","10.130.5.209")
+dbPort = os.environ.get("POSTGRES_PORT",5432)
 
 def createUser(username:str, password:str)->bool:
     """Adds a user with the given username and password to the database. Assumes that the checkIfUsernameFree has already been called before. We hash the password here. Returns true if the user generation happened without any error
@@ -47,6 +49,7 @@ def createUser(username:str, password:str)->bool:
 
         conn.close()
     except Exception as e:
+        conn.close()
         return {"error": "Something went wrong " +  str(e) }
 
     return ret
@@ -91,7 +94,9 @@ def db_add_task_and_get_tid(image,uid):
         tid = cur.fetchall()[0][0]
         conn.commit()
     except Exception as e:
+        conn.close()
         return {"error": "Something went wrong " +  str(e) }
+    conn.close()
     return {"tid": tid}
 
 def db_add_jobs(jobs,tid):
@@ -104,5 +109,61 @@ def db_add_jobs(jobs,tid):
         psycopg2.extras.execute_values(cur, ins_query, ins_task, page_size=100)
         conn.commit()
     except Exception as e:
+        conn.close()
         return {"error": "Something went wrong " +  str(e) }
+    conn.close()
     return {"tid": tid}
+
+def db_get_jobs(_id):
+    try:
+        conn = psycopg2.connect(database = dbName, user = dbUser, password = dbPass, host = dbHost, port = dbPort)
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT tid FROM tasks WHERE id = %s
+        ''', [_id])
+        ret = dict()
+        tasks = cur.fetchall()
+        for row in tasks:
+            cur.execute('''
+                SELECT cmd,retval FROM threads WHERE tid = %s
+            ''', [row[0]])
+            ret[str(row[0])] = cur.fetchall()
+        conn.close()
+
+    except Exception as e:
+        conn.close()
+        return {"error": "Something went wrong " +  str(e) }
+    return ret
+
+def db_delete_job(jid):
+    try:
+        conn = psycopg2.connect(database = dbName, user = dbUser, password = dbPass, host = dbHost, port = dbPort)
+        cur = conn.cursor()
+        cur.execute('''
+            DELETE FROM threads WHERE tid = %s;
+        ''', [jid])
+        cur.execute('''
+            DELETE FROM tasks WHERE tid = %s;
+        ''', [jid])
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        conn.close()
+        return {"error": "Something went wrong " +  str(e) }
+    return {"message": "Job deleted successfully"}
+
+def db_check_job_owner(uid,jid):
+    try:
+        conn = psycopg2.connect(database = dbName, user = dbUser, password = dbPass, host = dbHost, port = dbPort)
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT id FROM tasks WHERE tid = %s
+        ''', [jid])
+        ret = cur.fetchall()
+        conn.close()
+        if len(ret) == 0:
+            return {"error": "Job not found"}
+        return {"uid":ret[0][0]}
+    except Exception as e:
+        conn.close()
+        return {"error": "Something went wrong " +  str(e) }

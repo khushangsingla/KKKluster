@@ -19,3 +19,16 @@ def add_tasks_in_db(jobs,image,uid):
         return ret
     ret = db_add_jobs(jobs,ret["tid"])
     return ret
+
+def get_jobs_of_user(uid):
+    ret = db_get_jobs(uid)
+    return ret
+
+def delete_jobs_in_db(uid,jid):
+    ret = db_check_job_owner(uid,jid)
+    if "error" in ret:
+        return ret
+    if str(ret['uid']) != str(uid):
+        return {"error": "Unauthorized"}
+    ret = db_delete_job(jid)
+    return ret
