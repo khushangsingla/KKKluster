@@ -1,4 +1,5 @@
 CREATE TYPE role_enum AS ENUM ('admin', 'guest');
+CREATE TYPE status_enum AS ENUM ('waiting', 'running', 'completed');
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -24,6 +25,6 @@ CREATE TABLE IF NOT EXISTS threads (
 	id SERIAL,
 	retval INT,
 	cmd VARCHAR,
-	completed BOOLEAN DEFAULT FALSE,
+	status status_enum DEFAULT 'waiting',
 	FOREIGN KEY (tid) REFERENCES tasks(tid)
 );

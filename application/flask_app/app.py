@@ -1,11 +1,9 @@
 import jwt, os
-from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template, make_response
+from flask import Flask, request, jsonify, render_template, make_response, redirect, url_for
 import json
 from utils import *
 # from auth_middleware import token_required
 
-load_dotenv()
 
 app = Flask(__name__)
 SECRET_KEY = os.environ.get("SECRET_KEY", 'fj29823hfji23g78eryrh2uiyUIGUIRGGT3783r7f_UTjty')
@@ -34,9 +32,22 @@ def authorize(req):
 def hello():
     ret = authorize(request)
     if ret:
-        return render_template("submit_jobs.html",userid=str(ret))
-    return render_template("login.html", error=None)
+        return redirect("/profile")
+    return redirect("/login")
 
+@app.route("/profile", methods=["GET"])
+def profile():
+    ret = authorize(request)
+    if not ret:
+        return redirect("/login")
+    return render_template("submit_jobs.html",userid=str(ret), jobs = get_jobs_of_user(ret), message=request.args.get("message"))
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    ret = authorize(request)
+    if ret:
+        return redirect("/profile")
+    return render_template("login.html")
 @app.route("/login", methods=["POST"])
 def login():
     try:
@@ -91,13 +102,13 @@ def login():
 def submit_jobs():
     ret = authorize(request)
     if not ret:
-        return render_template("login.html")
+        return redirect("/login")
     try:
         data = request.files
         task_ret = add_tasks_in_db(data['textfile'].read().decode("ascii").split("\n"),request.form["image_link"],ret)
         if "error" in task_ret:
-            return render_template("submit_jobs.html",userid=str(ret), message=str(task_ret["error"]))
-        return render_template("submit_jobs.html",userid=str(ret), message=f"Jobs Submitted Successfully : {task_ret['tid']}")
+            return render_template("submit_jobs.html", message=str(task_ret["error"]),userid=str(ret), jobs = get_jobs_of_user(ret))
+        return redirect(url_for("profile", message=f"Jobs Submitted Successfully : {task_ret['tid']}"))
     except Exception as e:
         raise e
         return {
@@ -106,6 +117,30 @@ def submit_jobs():
                 "data": None
         }, 500
 
+@app.route("/delete_jobs", methods=["POST"])
+def delete_jobs():
+    ret = authorize(request)
+    if not ret:
+        return redirect("/login")
+    try:
+        retval = delete_jobs_in_db(ret,request.form["job_id"])
+        if "error" in retval:
+            return {
+                    "message": "Something went wrong!",
+                    "error": retval["error"],
+                    "data": None
+            }, 500
+        return redirect("/profile")
+    except Exception as e:
+        return {
+                "message": "Something went wrong!",
+                "error": str(e),
+                "data": None
+        }, 500
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    if os.environ.get("DEBUG"):
+        app.run(debug=True)
+    else:
+        app.run(debug=False, host="0.0.0.0", port=80)
 
