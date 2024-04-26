@@ -8,3 +8,6 @@ umount -R /mnt
 umount -R /mnt
 
 rm -r /mnt/*
+
+rm *.img
+rm *.vmdk
