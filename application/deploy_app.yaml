@@ -16,8 +16,8 @@ spec:
   selector:
     name: web-server
   ports:
-    - port: 80
-      targetPort: 8080
+    - port: 14080
+      targetPort: 14080
 
 ---
 
