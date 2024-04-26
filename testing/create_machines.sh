@@ -14,6 +14,9 @@ sudo VBoxManage internalcommands createrawvmdk -filename controlplane.vmdk -rawd
 sudo VBoxManage internalcommands createrawvmdk -filename worker0.vmdk -rawdisk /dev/nbd1
 sudo VBoxManage internalcommands createrawvmdk -filename worker1.vmdk -rawdisk /dev/nbd2
 
+# Command for new VirtualBox VM version
+# sudo VBoxManage internalcommands createrawvmdk -filename worker1.vmdk -rawdisk /dev/nbd2
+# 
 # Use the following in EFI shell
 # FS0:
 # bcfg boot add 0 fs0:\EFI\GRUB\grubx64.efi "UEFI OS"
