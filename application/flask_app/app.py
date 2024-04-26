@@ -42,6 +42,12 @@ def profile():
         return redirect("/login")
     return render_template("submit_jobs.html",userid=str(ret), jobs = get_jobs_of_user(ret), message=request.args.get("message"))
 
+@app.route("/login", methods=["GET"])
+def login_page():
+    ret = authorize(request)
+    if ret:
+        return redirect("/profile")
+    return render_template("login.html")
 @app.route("/login", methods=["POST"])
 def login():
     try:
