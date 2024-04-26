@@ -3,7 +3,7 @@ Description=Connect to proxy every 30 minutes
 
 [Timer]
 OnStartupSec=5
-OnUnitActiveSec=1700
+OnUnitActiveSec=60
 RefuseManualStart=no
 RefuseManulStop=no
 Unit=internet_access_enable.service
