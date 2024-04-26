@@ -46,7 +46,7 @@ else
 		/tmp/bootstrapping `#install target` \
 		$bootstrap_mirror # mirror for bootstrapping
 	arch-chroot /tmp/bootstrapping bash -c "apt update \
-		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget htop nfs-common -y \
+		&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget htop passwd nfs-common -y \
 		&& curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
 		&& echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list \
 		&& apt update \
@@ -75,10 +75,8 @@ cp -rp /tmp/bootstrapping/* /mnt
 genfstab -U /mnt > /mnt/etc/fstab
 echo "127.0.0.1 $2" >> /mnt/etc/hosts
 echo $2 > /mnt/etc/hostname
-cp internet_access_enable.service /mnt/etc/systemd/system
-cp internet_access_enable.timer /mnt/etc/systemd/system
-cp internet_access.sh /mnt/home/admin
-chmod +x /mnt/home/admin
+cp ../os_setup/internet_access_enable.service /mnt/etc/systemd/system
+cp ../os_setup/internet_access_enable.timer /mnt/etc/systemd/system
 
 arch-chroot /mnt/ bash -c "apt update \
 	&& apt install network-manager grub-efi-amd64 linux-image-amd64 sudo docker.io docker-compose neovim build-essential openssl openssh-server curl wget -y \
@@ -86,12 +84,14 @@ arch-chroot /mnt/ bash -c "apt update \
 	&& update-grub \
 	&& grub-mkconfig -o /boot/grub/grub.cfg \
 	&& useradd --home /home/admin --shell /bin/bash -m admin \
-	&& passwd admin \
+	&& echo 'admin:admin' | chpasswd \
 	&& systemctl enable internet_access_enable.service \
 	&& systemctl enable internet_access_enable.timer"
 echo 'admin  ALL=(ALL:ALL) NOPASSWD:ALL' >> /mnt/etc/sudoers
 
-mkdir /mnt/home/admin/.ssh
+mkdir -p /mnt/home/admin/.ssh
+cp ../os_setup/internet_access.sh /mnt/home/admin
+chmod +x /mnt/home/admin/internet_access.sh
 cp /home/hrishi/.ssh/authorized_keys /mnt/home/admin/.ssh
 # echo "/swapfile           	none      	swap      	defaults  	0 0" >> /mnt/etc/fstab
 umount -R /mnt
