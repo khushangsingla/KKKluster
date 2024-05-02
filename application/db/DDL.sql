@@ -26,5 +26,6 @@ CREATE TABLE IF NOT EXISTS threads (
 	retval INT,
 	cmd VARCHAR,
 	status status_enum DEFAULT 'waiting',
+	pod_name VARCHAR,
 	FOREIGN KEY (tid) REFERENCES tasks(tid)
 );

@@ -6,6 +6,7 @@ import datetime
 from typing import List, Tuple
 import psycopg2.extras
 import os
+import socket
 
 
 users_table_name = "users"
@@ -16,6 +17,9 @@ dbUser = os.environ.get("POSTGRES_USER","postgres")
 dbPass = os.environ.get("POSTGRES_PASSWORD","postgres")
 dbHost = os.environ.get("POSTGRES_HOST","10.130.5.209")
 dbPort = os.environ.get("POSTGRES_PORT",5432)
+pod_identifier = os.environ.get("WEBAPP_SERVICE_IDENTIFIER","webapp" + 'a'*(64-6)).encode('utf-8')
+service_ip = os.environ.get("JOB_HANDLER_SERVICE_IP")
+service_port = int(os.environ.get("JOB_HANDLER_SERVICE_PORT"))
 
 def createUser(username:str, password:str)->bool:
     """Adds a user with the given username and password to the database. Assumes that the checkIfUsernameFree has already been called before. We hash the password here. Returns true if the user generation happened without any error
@@ -112,6 +116,17 @@ def db_add_jobs(jobs,tid):
         conn.close()
         return {"error": "Something went wrong " +  str(e) }
     conn.close()
+    # inform intermediate service
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((service_ip, service_port))
+        s.sendall(pod_identifier + tid.to_bytes(4, byteorder='little'))
+        s.close()
+    except Exception as e:
+        if 'error' not in db_delete_job(tid):
+            return {"error": "Something went wrong: Couldn't start jobs, deleted instead. Try again later. : " +  str(e) }
+        else:
+            return {"error": "Serious issues occured: Couldn't start tasks and job couldn't be deleted from db. Try deleting jobs again later. Are you sure this is not close to a downtime? : " +  str(e) }
     return {"tid": tid}
 
 def db_get_jobs(_id):

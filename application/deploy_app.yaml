@@ -14,7 +14,7 @@ metadata:
     name: external-access
 spec:
   externalIPs:
-    - "10.130.5.172"
+    - "10.130.5.196"
   selector:
     name: web-server
   ports:
@@ -161,3 +161,37 @@ spec:
           envFrom:
             - configMapRef:
                 name: db-secret
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: kkkluster
+  name: cluster-controller
+  labels:
+    name: cluster-controller
+spec:
+  selector:
+    matchLabels:
+      app: cluster-controller
+  template:
+    metadata:
+      labels:
+        name: cluster-controller
+        app: cluster-controller
+    spec:
+      containers:
+        - name: cluster-controller
+          image: khushangsingla/kkkluster_task_controller:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8467
+              hostPort: 8467
+          env:
+            - name: POSTGRES_PORT
+              value: "5432"
+          envFrom:
+            - configMapRef:
+                name: db-secret
+
