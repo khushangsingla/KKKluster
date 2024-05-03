@@ -1,6 +1,11 @@
 # KKKluster
 A clustering plan for running various types of workloads
 
+##  Running Instructions
+Running instructions are provided in the `testing` directory
+
+**Please use the scripts present inside `Debugging done` commit instead of the latest commmit to run the cluster**
+
 ## Components
 
 - `fs-setup`
@@ -21,3 +26,11 @@ A clustering plan for running various types of workloads
 - `testing`
     
     This directory contains the testing setup.
+
+## Objectives
+- Minimize the amount of control that users can exercise
+- Users will only provide docker image and a list of commands
+- Resources allocated to users should depend on their priority
+- Maximixe the CPU usage across all machines
+
+
