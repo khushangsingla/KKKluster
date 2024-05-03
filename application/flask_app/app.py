@@ -105,6 +105,7 @@ def submit_jobs():
         return redirect("/login")
     try:
         data = request.files
+        print("[DEBUG] adding tasks")
         task_ret = add_tasks_in_db(data['textfile'].read().decode("ascii").split("\n"),request.form["image_link"],ret)
         if "error" in task_ret:
             return render_template("submit_jobs.html", message=str(task_ret["error"]),userid=str(ret), jobs = get_jobs_of_user(ret))
@@ -140,7 +141,7 @@ def delete_jobs():
 
 if __name__ == "__main__":
     if os.environ.get("DEBUG"):
-        app.run(debug=True)
+        app.run(debug=True, host="0.0.0.0",port=80)
     else:
         app.run(debug=False, host="0.0.0.0", port=80)
 

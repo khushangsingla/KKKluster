@@ -18,6 +18,7 @@ def add_tasks_in_db(jobs,image,uid):
     if "error" in ret:
         return ret
     ret = db_add_jobs(jobs,ret["tid"])
+    print("[DEBUG] Added jobs to db. add_tasks_in_db: ret: ", ret)
     return ret
 
 def get_jobs_of_user(uid):

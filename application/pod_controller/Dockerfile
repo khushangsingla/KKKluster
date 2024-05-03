@@ -5,5 +5,7 @@ RUN apt update && apt upgrade -y
 RUN pip install kubernetes psycopg2-binary
 
 COPY . /app
+RUN mkdir -p /root/.kube
+COPY config /root/.kube/config
 WORKDIR /app
-RUN [ "python", "server.py" ]
+CMD [ "python", "server.py" ]

@@ -17,8 +17,8 @@ dbUser = os.environ.get("POSTGRES_USER","postgres")
 dbPass = os.environ.get("POSTGRES_PASSWORD","postgres")
 dbHost = os.environ.get("POSTGRES_HOST","10.130.5.209")
 dbPort = os.environ.get("POSTGRES_PORT",5432)
-pod_identifier = os.environ.get("WEBAPP_SERVICE_IDENTIFIER","webapp" + 'a'*(64-6)).encode('utf-8')
-service_ip = os.environ.get("JOB_HANDLER_SERVICE_IP")
+pod_identifier = os.environ.get("FRONTEND_SERVER_ID","webapp" + 'a'*(64-6)).encode('utf-8')
+service_ip = os.environ.get("JOB_HANDLER_SERVICE_HOST")
 service_port = int(os.environ.get("JOB_HANDLER_SERVICE_PORT"))
 
 def createUser(username:str, password:str)->bool:
@@ -120,11 +120,13 @@ def db_add_jobs(jobs,tid):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((service_ip, service_port))
+        print("Pod Identifier: ",pod_identifier)
+        print("TID: ",tid)
         s.sendall(pod_identifier + tid.to_bytes(4, byteorder='little'))
         s.close()
     except Exception as e:
         if 'error' not in db_delete_job(tid):
-            return {"error": "Something went wrong: Couldn't start jobs, deleted instead. Try again later. : " +  str(e) }
+            return {"error": "Something went wrong: Couldn't start jobs, deleted instead. Try again later. : " +  str(e)  + "[DEBUG] " + str(pod_identifier) + "\t" + str(tid) + "\t" + str(service_ip) + "\t" + str(service_port)}
         else:
             return {"error": "Serious issues occured: Couldn't start tasks and job couldn't be deleted from db. Try deleting jobs again later. Are you sure this is not close to a downtime? : " +  str(e) }
     return {"tid": tid}
