@@ -45,12 +45,13 @@ def create_pods(num_pods, image, hashval):
                     'spec': {
                         'containers': [{
                             'image': image,
+                            'imagePullPolicy': 'Always',
                             'name': f"{hashval[:10]}-{i}-container",
                             'env': [{'name':'POD_IDENTIFIER', 'value': str(hashval)},
                                     {'name':'JOB_HANDLER_SERVICE_IP', 'value': IP_ADDRESS},
                                     {'name':'JOB_HANDLER_SERVICE_PORT', 'value': str(PORT)},
                                     {'name':'NUM_THREADS', 'value': "2"}],
-                            "args": [ "python3 /common_mount/interact.py" ],
+                            "args": [ "python3", "/common_mount/interact.py" ],
                             "volumeMounts": [
                                 {
                                     "mountPath": "/common_mount",

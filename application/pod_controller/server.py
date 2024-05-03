@@ -47,10 +47,10 @@ def new_job_came_up(jid):
     image = db.db_get_image(jid)
     hashval = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(64))
     k8s.create_pods(num_pods, image, hashval)
-    id_to_job[hashval] = [jid, []]
+    id_to_job[hashval] = jid
 
-    cmds = db.db_get_commands_of_job(jid)
-    id_to_job[hashval][1] = cmds
+    # cmds = db.db_get_commands_of_job(jid)
+    # id_to_job[hashval][1] = cmds
     
 
 def kill_pod(identifier):
@@ -63,15 +63,16 @@ def get_next_cmd(identifier):
     """
     returns a tuple thid, cmd
     """
-    cmd = id_to_job[identifier][1].pop(0)
-    return cmd
+    jid = id_to_job[identifier]
+    task = db.db_get_thid_to_do(jid,n=1)[0]
+    return task[0],task[1]
 
 def update_thread_retcode(thid, exit_code, identifier):
     """
     Updates the exit code of the thread in the db
     returns false if unauthorized access
     """
-    jobid = id_to_job[identifier][0]
+    jobid = id_to_job[identifier]
     db.db_update_thread_retcode(thid, exit_code, jobid)
     return
 
@@ -114,7 +115,7 @@ def service(sel,key, mask):
                 return
 
             identifier = data
-            sel.register(sock, selectors.EVENT_READ, data={'data': b'', 'identifier': identifier, 'entity_type': get_entity_type(identifier)})
+            sel.register(sock, selectors.EVENT_READ, data={'data': b'', 'identifier': identifier.decode('utf-8'), 'entity_type': get_entity_type(identifier)})
             return
 
         print("[DEBUG] Entity type: ", key.data['entity_type'])
@@ -130,18 +131,24 @@ def service(sel,key, mask):
                 if data == b'\x00':
                     # send cmd and thid
                     key_data['task'] = SEND_THREAD_CMD
-                    sel.register(sock, selectors.EVENT_WRITE, data=key_data)
+                    # sel.register(sock, selectors.EVENT_WRITE, data=key_data)
                 elif data == b'\x01':
                     # thread is completed
                     key_data['task'] = GET_THREAD_RETCODE
-                    sel.register(sock, selectors.EVENT_READ , data=key_data)
-                return
+                    # sel.register(sock, selectors.EVENT_READ , data=key_data)
+                else:
+                    # malicious
+                    sock.close()
+                    kill_pod(key_data['identifier'])
+                    return
             if key_data['task'] == SEND_THREAD_CMD:
                 # send cmd and thid
                 thid, cmd = get_next_cmd(key_data['identifier'])
-                to_send = thid.to_bytes(4, 'little') + len(cmd).to_bytes(4,'little') + cmd
+                to_send = thid.to_bytes(4, 'little') + len(cmd).to_bytes(4,'little') + cmd.encode('utf-8')
+                print("[DEBUG] Sending cmd: ", to_send)
                 sel.register(sock, selectors.EVENT_WRITE, data={'data' : b"", 'to_send': to_send, 'task': SEND_THREAD_CMD, 'identifier': key_data['identifier']})
-                pass
+                return
+
             elif key_data['task'] == GET_THREAD_RETCODE:
                 # get thread id and exit code
                 if len(data) < 8:
@@ -176,6 +183,7 @@ def service(sel,key, mask):
     elif mask & selectors.EVENT_WRITE:
         print("[DEBUG] Writing data")
         # send cmd and thid
+        print("[DEBUG] Sent: ", key_data)
         n = sock.send(key_data['to_send'])
         key_data['to_send'] = key_data['to_send'][n:]
         if len(key_data['to_send']) > 0:

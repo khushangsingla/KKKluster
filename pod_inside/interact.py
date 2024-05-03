@@ -1,6 +1,7 @@
 import os
 import socket
 import multiprocessing.pool as Pool
+import subprocess
 # jobid = sys.argv[1]
 
 identifier = os.environ.get("POD_IDENTIFIER")
@@ -63,7 +64,7 @@ def informService(thid, retcode):
         print("Error: ", e)
         informService(thid, retcode)
 
-def runCmd():
+def runCmd(x=None):
     thid, cmd = getNewCmd()
 
     if cmd is None:

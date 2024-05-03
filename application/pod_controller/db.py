@@ -1,4 +1,6 @@
 import psycopg2
+import random
+import time
 import os
 
 dbName = os.environ.get("POSTGRES_DB","userdata")
@@ -6,6 +8,7 @@ dbUser = os.environ.get("POSTGRES_USER","postgres")
 dbPass = os.environ.get("POSTGRES_PASSWORD","postgres")
 dbHost = os.environ.get("POSTGRES_HOST","10.130.5.209")
 dbPort = os.environ.get("POSTGRES_PORT",5432)
+
 
 def db_get_thid_to_do(jobid, n = 10):
     try:
@@ -17,16 +20,19 @@ def db_get_thid_to_do(jobid, n = 10):
     while True:
         try:
             cur = conn.cursor()
-            cur.execute(f"SELECT thid FROM threads WHERE jobid = %s AND status = 'waiting' LIMIT {n}", (jobid))
+            print(f"Running cmd: SELECT thid,cmd FROM threads WHERE tid = {jobid} AND status = 'waiting' LIMIT {n}")
+            cur.execute(f"SELECT thid,cmd FROM threads WHERE tid = {jobid} AND status = 'waiting' LIMIT {n}")
             rows = cur.fetchall()
+            print(f"Running cmd: UPDATE threads SET status = 'running' WHERE thid in ({','.join([str(r[0]) for r in rows])})")
             cur.execute(f"UPDATE threads SET status = 'running' WHERE thid in ({','.join([str(r[0]) for r in rows])})")
-            cur.commit()
+            conn.commit()
         except Exception as e:
             print(f"Error2: {e}")
+            time.sleep(random.randint(1,5))
             continue
         break
     conn.close()
-    return [r[0] for r in rows]
+    return rows
 
 def db_assign_thid_to_pod(thids,pod):
     try:
@@ -38,7 +44,7 @@ def db_assign_thid_to_pod(thids,pod):
     try:
         cur = conn.cursor()
         cur.execute(f"UPDATE threads SET pod_name = %s WHERE thids in ({','.join([str(r[0]) for r in thids])})", (pod))
-        cur.commit()
+        conn.commit()
     except Exception as e:
         print(f"4Error: {e}")
         return False
@@ -54,7 +60,7 @@ def db_has_job_finished(jobid):
         return False
     try:
         cur = conn.cursor()
-        cur.execute(f"SELECT count(*) FROM threads WHERE jobid = %s AND (status = 'running' or status = 'waiting')", (jobid))
+        cur.execute(f"SELECT count(*) FROM threads WHERE tid = %s AND (status = 'running' or status = 'waiting')", (jobid))
         rows = cur.fetchall()
     except Exception as e:
         print(f"6Error: {e}")
@@ -71,7 +77,7 @@ def db_get_commands_of_job(jobid):
         return []
     try:
         cur = conn.cursor()
-        cur.execute(f"SELECT cmd FROM threads WHERE jobid = %s", (jobid))
+        cur.execute(f"SELECT cmd FROM threads WHERE tid = {jobid}")
         rows = cur.fetchall()
     except Exception as e:
         print(f"8Error: {e}")
@@ -92,8 +98,8 @@ def db_update_thread_retcode(thid, ret_code, jobid):
 
     try:
         cur = conn.cursor()
-        cur.execute(f"UPDATE threads SET ret_code = %s WHERE thid = %s AND jobid = %s", (ret_code, thid, jobid))
-        cur.commit()
+        cur.execute(f"UPDATE threads SET ret_code = %s WHERE thid = %s AND tid = {jobid}", (ret_code, thid))
+        conn.commit()
     except Exception as e:
         print(f"10Error: {e}")
         return False
