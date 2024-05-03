@@ -5,7 +5,7 @@ import multiprocessing.pool as Pool
 
 identifier = os.environ.get("POD_IDENTIFIER")
 service_ip = os.environ.get("JOB_HANDLER_SERVICE_IP")
-service_port = int(os.environ.get("JOB_HANDLER_SERVICE_PORT"))
+service_port = int(os.environ.get("JOB_HANDLER_SERVICE_PORT",9876))
 num_threads = int(os.environ.get("NUM_THREADS", 10))
 
 commands = None
