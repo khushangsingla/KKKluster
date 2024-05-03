@@ -30,13 +30,15 @@ sel = selectors.DefaultSelector()
 sel.register(lsock, selectors.EVENT_READ, data=None)
 
 SEND_THREAD_CMD = 0
-WORKER_POD = 1
-FRONTEND_SERVER = 2
-MALICIOUS = 3
+GET_THREAD_RETCODE = 1
+WORKER_POD = 2
+FRONTEND_SERVER = 3
+MALICIOUS = 4
 
 frontend_server_id = os.getenv('FRONTEND_SERVER_ID')
 
 id_to_job = {}
+list_of_pods_for_a_job = {}
 
 def new_job_came_up(jid):
     """
@@ -45,9 +47,12 @@ def new_job_came_up(jid):
     print("[DEBUG] New job came up: ", jid)
     num_pods = db.db_get_num_pods(jid)
     image = db.db_get_image(jid)
-    hashval = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(64))
-    k8s.create_pods(num_pods, image, hashval)
-    id_to_job[hashval] = jid
+    list_of_pods_for_a_job[jid] = []
+    for i in num_pods:
+        hashval = "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(64))
+        k8s.create_pods(1, image, hashval)
+        id_to_job[hashval] = jid
+        list_of_pods_for_a_job[jid].append(hashval)
 
     # cmds = db.db_get_commands_of_job(jid)
     # id_to_job[hashval][1] = cmds
@@ -57,7 +62,7 @@ def kill_pod(identifier):
     """
     Kills the pod with the given identifier
     """
-    pass
+    k8s.kill_pod_with_name(identifier[:10] + "-0")
 
 def get_next_cmd(identifier):
     """
@@ -65,6 +70,8 @@ def get_next_cmd(identifier):
     """
     jid = id_to_job[identifier]
     task = db.db_get_thid_to_do(jid,n=1)[0]
+    if not task:
+        return None,None
     return task[0],task[1]
 
 def update_thread_retcode(thid, exit_code, identifier):
@@ -144,6 +151,11 @@ def service(sel,key, mask):
             if key_data['task'] == SEND_THREAD_CMD:
                 # send cmd and thid
                 thid, cmd = get_next_cmd(key_data['identifier'])
+                if not thid:
+                    # no more cmds
+                    sock.close()
+                    kill_pod(key_data['identifier'])
+                    return
                 to_send = thid.to_bytes(4, 'little') + len(cmd).to_bytes(4,'little') + cmd.encode('utf-8')
                 print("[DEBUG] Sending cmd: ", to_send)
                 sel.register(sock, selectors.EVENT_WRITE, data={'data' : b"", 'to_send': to_send, 'task': SEND_THREAD_CMD, 'identifier': key_data['identifier']})

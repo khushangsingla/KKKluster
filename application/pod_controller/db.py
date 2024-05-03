@@ -23,6 +23,9 @@ def db_get_thid_to_do(jobid, n = 10):
             print(f"Running cmd: SELECT thid,cmd FROM threads WHERE tid = {jobid} AND status = 'waiting' LIMIT {n}")
             cur.execute(f"SELECT thid,cmd FROM threads WHERE tid = {jobid} AND status = 'waiting' LIMIT {n}")
             rows = cur.fetchall()
+            if(len(rows) == 0):
+                conn.close()
+                break
             print(f"Running cmd: UPDATE threads SET status = 'running' WHERE thid in ({','.join([str(r[0]) for r in rows])})")
             cur.execute(f"UPDATE threads SET status = 'running' WHERE thid in ({','.join([str(r[0]) for r in rows])})")
             conn.commit()
@@ -31,7 +34,10 @@ def db_get_thid_to_do(jobid, n = 10):
             time.sleep(random.randint(1,5))
             continue
         break
+    print("Got from db: ",rows[0][0],rows[0][1])
     conn.close()
+    if len(rows) == 0:
+        return None
     return rows
 
 def db_assign_thid_to_pod(thids,pod):
@@ -98,7 +104,7 @@ def db_update_thread_retcode(thid, ret_code, jobid):
 
     try:
         cur = conn.cursor()
-        cur.execute(f"UPDATE threads SET ret_code = %s WHERE thid = %s AND tid = {jobid}", (ret_code, thid))
+        cur.execute(f"UPDATE threads SET retval = {ret_code} WHERE thid = {thid} AND tid = {jobid}")
         conn.commit()
     except Exception as e:
         print(f"10Error: {e}")

@@ -91,6 +91,23 @@ def create_pods(num_pods, image, hashval):
             #     time.sleep(1)
             # print("Done.")
 
+def kill_pod_with_name(name):
+    config.load_kube_config()
+    try:
+        c = Configuration().get_default_copy()
+    except AttributeError:
+        c = Configuration()
+        c.assert_hostname = False
+    Configuration.set_default(c)
+    api_instance = core_v1_api.CoreV1Api()
+    try:
+        resp = api_instance.delete_namespaced_pod(name=name,
+                                                  namespace='kkkluster',
+                                                  body={})
+        print("Pod deleted. status='%s'" % str(resp.status))
+    except ApiException as e:
+        print(f"Error: {e}")
+
 # def main():
 #     config.load_kube_config()
 #     try:
